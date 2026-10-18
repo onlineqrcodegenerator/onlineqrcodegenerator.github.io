@@ -19,8 +19,8 @@
   gtag('config', 'G-JQGMHGQPSY');
 </script>
   <!-- CDNs for QR Rendering, CSV/Excel Parsing, ZIP & Download -->
-<script src="./javascript/qrcode.js"></script>
-  <script src="./javascript/papaparse.js"></script>
+<script src="./javascript/qrcode.js" defer></script>
+  <script src="./javascript/papaparse.js" defer></script>
   <script src="./javascript/xlsx.js" defer></script>
   <script src="./javascript/jszip.js" defer></script>
   <script src="./javascript/filesaver.js" defer></script>
@@ -445,6 +445,11 @@
     .footer-text { font-size: 0.9rem; color: var(--text-muted); }
     .footer-links { display: flex; gap: 1rem; list-style: none; }
     .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; }
+    @media (max-width: 768px) {
+    .page-header h1 {
+        font-size: 1.4rem; /* 22.4px */
+    }
+}
   </style>
 </head>
 <body>
