@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Bulk QR Code Generator Online</title>
+  <meta name="description" content="Generate multiple QR codes for free from CSV and Excel files. Customize colors, patterns, and logos, then download all your QR codes in a ZIP file.">
+  <!-- CDNs for QR Rendering, CSV/Excel Parsing, ZIP & Download -->
+  <script src="./javascript/qrcode.js"></script>
+  <script src="./javascript/papaparse.js"></script>
+  <script src="./javascript/xlsx.js" defer></script>
+  <script src="./javascript/jszip.js" defer></script>
+  <script src="./javascript/filesaver.js" defer></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: rgba(0, 0, 0, 0.05);
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    /* ================= NAVBAR ================= */
+    .navbar {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+    .navbar-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+    .brand-icon {
+      background: var(--accent);
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      list-style: none;
+    }
+    .nav-item a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.45rem 0.8rem;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .nav-item a:hover { color: var(--accent); background: var(--input-bg); }
+    .nav-item a.active { color: var(--accent); background: #e0f2fe; }
+
+    .hamburger-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      width: 40px;
+      height: 40px;
+      position: relative;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }
+    .hamburger-btn span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background-color: var(--text);
+      border-radius: 2px;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .hamburger-btn.is-active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger-btn.is-active span:nth-child(2) { opacity: 0; }
+    .hamburger-btn.is-active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    @media (max-width: 768px) {
+      .hamburger-btn { display: flex; }
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border);
+        box-shadow: 0 4px 12px var(--shadow);
+        padding: 0.75rem 1.25rem 1.25rem 1.25rem;
+        gap: 0.5rem;
+      }
+      .nav-links.open { display: flex; }
+      .nav-item { width: 100%; }
+      .nav-item a { display: block; width: 100%; padding: 0.75rem 1rem; font-size: 1rem; }
+    }
+
+    /* ================= MAIN CONTENT ================= */
+    main { flex: 1; padding: 2rem 1rem; }
+    
+    .page-header {
+      max-width: 1200px;
+      margin: 0 auto 2rem auto;
+      text-align: center;
+    }
+    .page-header h1 { font-size: 2rem; color: var(--accent); margin-bottom: 0.25rem; }
+    .page-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+    .app-layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 2rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .app-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ================= ACCORDION CONTROLS ================= */
+    .accordion-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 0.85rem;
+      box-shadow: 0 4px 12px var(--shadow);
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+    .accordion-item.active { border-color: var(--accent); }
+    .accordion-header {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 1.1rem 1.3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: left;
+    }
+    .accordion-header:hover { background: #f8fafc; }
+    .accordion-item.active .accordion-header { color: var(--accent); }
+    .accordion-icon {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+    .accordion-item.active .accordion-icon { transform: rotate(180deg); color: var(--accent); }
+    .accordion-body {
+      display: none;
+      padding: 0 1.3rem 1.4rem 1.3rem;
+      border-top: 1px solid transparent;
+    }
+    .accordion-item.active .accordion-body {
+      display: block;
+      border-top-color: var(--border);
+      padding-top: 1.2rem;
+    }
+
+    /* Form Controls */
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+    }
+    select:focus, input[type="text"]:focus { border-color: var(--accent); }
+
+    /* File Dropzone */
+    .file-dropzone {
+      border: 2px dashed var(--accent);
+      background: #f0f9ff;
+      border-radius: 10px;
+      padding: 1.75rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      transition: 0.2s;
+    }
+    .file-dropzone:hover { background: #e0f2fe; }
+    .file-dropzone input[type="file"] {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0; cursor: pointer;
+    }
+    .dropzone-label {
+      font-weight: 600;
+      color: var(--accent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .dropzone-label span { font-size: 0.8rem; font-weight: normal; color: var(--text-muted); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      user-select: none;
+    }
+    .checkbox-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+
+    .error-alert {
+      display: none;
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid var(--danger-border);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      margin-top: 0.6rem;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Colors */
+    .color-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--input-bg);
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    input[type="color"] { border: none; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; background: none; }
+    .color-hex { font-size: 0.85rem; text-transform: uppercase; font-family: monospace; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+    /* ================= PREVIEW / ACTION SIDEBAR ================= */
+    .preview-sticky {
+      position: sticky;
+      top: 5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    .preview-title { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 1rem; text-align: center; }
+
+    .preview-sample-box {
+      width: 100%;
+      height: 220px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+
+    .status-panel {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+    }
+    .status-row { display: flex; justify-content: space-between; margin-bottom: 0.25rem; }
+    .status-row strong { color: var(--accent); }
+
+    /* Progress Bar */
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      display: none;
+    }
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.1s linear;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-secondary { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
+
+    /* ================= PRINT CONTACT SHEET (NO EXTRA PAGE FIX) ================= */
+    #print-sheet {
+      display: none;
+    }
+
+    @media print {
+      @page {
+        size: auto;
+        margin: 10mm;
+      }
+      html, body {
+        background: #fff !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      /* Hide all web components completely */
+      .navbar, main, footer {
+        display: none !important;
+      }
+      /* Show ONLY the contact sheet */
+      #print-sheet {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .sheet-item {
+        border: 1px dashed #cbd5e1;
+        border-radius: 6px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        text-align: center;
+        padding: 10px 6px;
+      }
+      .sheet-item img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+      .sheet-item span {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        margin-top: 6px;
+        word-break: break-all;
+        color: #000;
+      }
+    }
+
+    footer {
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      padding: 2rem 1rem;
+      margin-top: auto;
+    }
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-text { font-size: 0.9rem; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 1rem; list-style: none; }
+    .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index" class="brand-link">
+        
+        <span>OnlineQRCodeGenerator</span>
+      </a>
+
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation menu" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <ul class="nav-links" id="nav-links">
+        <li class="nav-item"><a href="index" onclick="closeMenu()">Home</a></li>
+        <li class="nav-item"><a href="url-to-qr-code-generator" onclick="closeMenu()">URL</a></li>
+        <li class="nav-item"><a href="vcard-to-qr-code-generator" onclick="closeMenu()">vCard</a></li>
+        <li class="nav-item"><a href="wifi-to-qr-code-generator" onclick="closeMenu()">Wi-Fi</a></li>
+        <li class="nav-item"><a href="text-to-qr-code-generator" onclick="closeMenu()">Text</a></li>
+        <li class="nav-item"><a href="barcode-generator" onclick="closeMenu()">Barcode</a></li>
+        <li class="nav-item"><a href="bulk-qr-code-generator" class="active" onclick="closeMenu()">Bulk QR</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- MAIN APP -->
+  <main>
+    <div class="page-header">
+      <h1>Free Bulk QR Code Generator Online</h1>
+      <p>Upload a CSV or Excel spreadsheet (.xlsx) to batch generate, zip, or print hundreds of QR codes</p>
+    </div>
+
+    <div class="app-layout">
+      <!-- LEFT: ACCORDION CONTROLS -->
+      <div class="controls-column">
+        
+        <!-- Accordion 1: File Upload & Mapping -->
+        <div class="accordion-item active" id="acc-upload">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-upload')">
+            <span>1. Upload Spreadsheet &amp; Column Mapping</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="file-dropzone">
+              <input type="file" id="spreadsheet-file-input" accept=".csv, .xlsx, .xls, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
+              <div class="dropzone-label">
+                📊 Click or Drag Excel (.xlsx, .xls) or CSV File Here
+                <span>Supports hundreds of rows with auto-header detection</span>
+              </div>
+            </div>
+
+            <div class="error-alert" id="file-error">
+              <span>⚠️</span>
+              <span id="file-error-text">Unable to read spreadsheet file.</span>
+            </div>
+
+            <!-- Mapping Column Dropdowns -->
+            <div id="mapping-section" style="display: none; margin-top: 1.25rem;">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="data-column-select">QR Data Column *</label>
+                  <select id="data-column-select"></select>
+                </div>
+                <div class="form-group">
+                  <label for="name-column-select">File Naming Column</label>
+                  <select id="name-column-select"></select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 2: Shared Pattern & Colors -->
+        <div class="accordion-item" id="acc-styling">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-styling')">
+            <span>2. Shared Styling &amp; Colors</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="dots-style">Pattern Style</label>
+                <select id="dots-style">
+                  <option value="square">Classic Square</option>
+                  <option value="rounded" selected>Rounded</option>
+                  <option value="dots">Dots</option>
+                  <option value="extra-rounded">Extra Rounded</option>
+                  <option value="classy">Classy</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="color-type">Color Format</label>
+                <select id="color-type">
+                  <option value="single">Solid Color</option>
+                  <option value="linear">Linear Gradient</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Primary Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="dot-color-1" value="#0284c7">
+                  <span class="color-hex" id="dot-color-1-hex">#0284c7</span>
+                </div>
+              </div>
+
+              <div class="form-group" id="gradient-secondary-group" style="display: none;">
+                <label>Gradient Accent</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="dot-color-2" value="#6366f1">
+                  <span class="color-hex" id="dot-color-2-hex">#6366f1</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="bg-transparent" />
+                Transparent Background
+              </label>
+            </div>
+
+            <div class="form-group" id="bg-color-wrapper">
+              <label>Background Color</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="bg-color" value="#ffffff">
+                <span class="color-hex" id="bg-color-hex">#ffffff</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 3: Shared Logo / Brand Icon -->
+        <div class="accordion-item" id="acc-logo">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-logo')">
+            <span>3. Shared Logo or Icon</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="form-group">
+              <label for="logo-file">Upload Logo (PNG, SVG, JPG)</label>
+              <input type="file" id="logo-file" accept="image/*" />
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="logo-size">Logo Scale (<span id="logo-size-val">0.25</span>)</label>
+                <input type="range" id="logo-size" min="0.1" max="0.35" step="0.05" value="0.25">
+              </div>
+              <div class="form-group">
+                <label for="logo-margin">Margin Around Logo (<span id="logo-margin-val">4</span>px)</label>
+                <input type="range" id="logo-margin" min="0" max="15" step="1" value="4">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: ACTIONS & BATCH EXPORT -->
+      <div class="preview-sticky">
+        <div class="preview-title">Style Sample Preview</div>
+        <div class="preview-sample-box">
+          <div id="sample-qr"></div>
+        </div>
+
+        <!-- Status Box -->
+        <div class="status-panel">
+          <div class="status-row"><span>Rows Loaded:</span> <strong id="status-count">0</strong></div>
+          <div class="status-row"><span>Status:</span> <span id="status-msg" style="color: var(--text-muted);">Awaiting file upload</span></div>
+          <div class="progress-bar-container" id="progress-container">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-download-zip" onclick="generateBatchZip()" disabled>
+          📦 Download All as ZIP
+        </button>
+
+        <button class="btn btn-secondary" id="btn-print-sheet" onclick="generatePrintSheet()" disabled>
+          🖨️ Export Printable Contact Sheet
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Hidden Printable Contact Sheet Grid -->
+  <div id="print-sheet"></div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <p class="footer-text">© 2026 OnlineQRCodeGenerator. Client-side, privacy-first QR suite.</p>
+     
+    </div>
+  </footer>
+
+  <script>
+    /* ================= ACCORDION & HAMBURGER ================= */
+    function toggleAccordion(id) {
+      const target = document.getElementById(id);
+      const isOpen = target.classList.contains("active");
+      document.querySelectorAll(".accordion-item").forEach(item => item.classList.remove("active"));
+      if (!isOpen) target.classList.add("active");
+    }
+
+    const hamburgerBtn = document.getElementById("hamburger-btn");
+    const navLinks = document.getElementById("nav-links");
+    function toggleMenu() {
+      hamburgerBtn.classList.toggle("is-active");
+      navLinks.classList.toggle("open");
+    }
+    function closeMenu() {
+      hamburgerBtn.classList.remove("is-active");
+      navLinks.classList.remove("open");
+    }
+
+    /* ================= STATE ================= */
+    let parsedRows = [];
+    let fileHeaders = [];
+    let logoDataUrl = "";
+
+    // Style Preview Instance
+    const sampleQR = new QRCodeStyling({
+      width: 180,
+      height: 180,
+      type: "canvas",
+      data: "Sample Preview Code",
+      dotsOptions: { color: "#0284c7", type: "rounded" },
+      backgroundOptions: { color: "#ffffff" },
+      imageOptions: { crossOrigin: "anonymous", margin: 4, imageSize: 0.25 },
+      qrOptions: { errorCorrectionLevel: "H" }
+    });
+    sampleQR.append(document.getElementById("sample-qr"));
+
+    function getStylingOptions(dataString, width = 600, height = 600) {
+      const dotsType = document.getElementById("dots-style").value;
+      const colorType = document.getElementById("color-type").value;
+      const c1 = document.getElementById("dot-color-1").value;
+      const c2 = document.getElementById("dot-color-2").value;
+
+      let dotsOptions = { type: dotsType };
+      if (colorType === "single") {
+        dotsOptions.color = c1;
+      } else {
+        dotsOptions.gradient = {
+          type: "linear",
+          rotation: 45,
+          colorStops: [{ offset: 0, color: c1 }, { offset: 1, color: c2 }]
+        };
+      }
+
+      const isTransparent = document.getElementById("bg-transparent").checked;
+      const bgColor = isTransparent ? "transparent" : document.getElementById("bg-color").value;
+      const logoSize = parseFloat(document.getElementById("logo-size").value);
+      const logoMargin = parseInt(document.getElementById("logo-margin").value, 10);
+
+      return {
+        width: width,
+        height: height,
+        data: dataString,
+        image: logoDataUrl,
+        dotsOptions: dotsOptions,
+        backgroundOptions: { color: bgColor },
+        imageOptions: {
+          crossOrigin: "anonymous",
+          imageSize: logoSize,
+          margin: logoMargin
+        },
+        qrOptions: { errorCorrectionLevel: "H" }
+      };
+    }
+
+    function updateSample() {
+      sampleQR.update(getStylingOptions("Sample Preview Code", 180, 180));
+    }
+
+    /* ================= SPREADSHEET PARSER (.CSV & .XLSX) ================= */
+    document.getElementById("spreadsheet-file-input").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      const errorBox = document.getElementById("file-error");
+      const errorText = document.getElementById("file-error-text");
+
+      if (!file) return;
+
+      const fileName = file.name.toLowerCase();
+
+      // Excel Files (.xlsx, .xls)
+      if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            const jsonResults = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+            if (!jsonResults || !jsonResults.length) {
+              throw new Error("No data found in the first sheet.");
+            }
+
+            parsedRows = jsonResults;
+            fileHeaders = Object.keys(jsonResults[0]);
+            handleParsedSuccess();
+          } catch (err) {
+            errorText.textContent = "Error parsing Excel workbook: " + err.message;
+            errorBox.style.display = "flex";
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } 
+      // CSV Files (.csv)
+      else {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function(results) {
+            if (results.errors.length && !results.data.length) {
+              errorText.textContent = "Error parsing CSV file.";
+              errorBox.style.display = "flex";
+              return;
+            }
+
+            parsedRows = results.data;
+            fileHeaders = results.meta.fields || [];
+            handleParsedSuccess();
+          }
+        });
+      }
+    });
+
+    function handleParsedSuccess() {
+      const errorBox = document.getElementById("file-error");
+      if (!parsedRows.length) {
+        document.getElementById("file-error-text").textContent = "Spreadsheet contains no data rows.";
+        errorBox.style.display = "flex";
+        return;
+      }
+
+      errorBox.style.display = "none";
+      populateDropdowns();
+      document.getElementById("status-count").textContent = parsedRows.length;
+      document.getElementById("status-msg").textContent = "File Ready";
+      document.getElementById("btn-download-zip").disabled = false;
+      document.getElementById("btn-print-sheet").disabled = false;
+    }
+
+    function populateDropdowns() {
+      const dataSelect = document.getElementById("data-column-select");
+      const nameSelect = document.getElementById("name-column-select");
+      dataSelect.innerHTML = "";
+      nameSelect.innerHTML = "";
+
+      fileHeaders.forEach((header) => {
+        const opt1 = document.createElement("option");
+        opt1.value = header;
+        opt1.textContent = header;
+        dataSelect.appendChild(opt1);
+
+        const opt2 = document.createElement("option");
+        opt2.value = header;
+        opt2.textContent = header;
+        nameSelect.appendChild(opt2);
+      });
+
+      if (fileHeaders.length > 1) {
+        nameSelect.selectedIndex = 1;
+      }
+
+      document.getElementById("mapping-section").style.display = "block";
+    }
+
+    /* ================= BATCH ZIP GENERATION ================= */
+    async function generateBatchZip() {
+      if (!parsedRows.length) return;
+
+      const dataCol = document.getElementById("data-column-select").value;
+      const nameCol = document.getElementById("name-column-select").value;
+      const btn = document.getElementById("btn-download-zip");
+      const progressContainer = document.getElementById("progress-container");
+      const progressFill = document.getElementById("progress-fill");
+      const statusMsg = document.getElementById("status-msg");
+
+      btn.disabled = true;
+      progressContainer.style.display = "block";
+      statusMsg.textContent = "Generating ZIP...";
+
+      const zip = new JSZip();
+      const folder = zip.folder("qr-codes");
+      const total = parsedRows.length;
+
+      for (let i = 0; i < total; i++) {
+        const row = parsedRows[i];
+        const qrContent = String(row[dataCol] || "").trim();
+        let fileName = String(row[nameCol] || `row-${i + 1}`).trim().replace(/[/\\?%*:|"<>]/g, "-");
+        if (!fileName) fileName = `code-${i + 1}`;
+
+        if (qrContent) {
+          const qrInstance = new QRCodeStyling({
+            ...getStylingOptions(qrContent, 600, 600),
+            type: "canvas"
+          });
+
+          const blob = await qrInstance.getRawData("png");
+          folder.file(`${fileName}.png`, blob);
+        }
+
+        const percent = Math.round(((i + 1) / total) * 100);
+        progressFill.style.width = percent + "%";
+        statusMsg.textContent = `Processing: ${i + 1} / ${total}`;
+      }
+
+      statusMsg.textContent = "Compressing archive...";
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, "bulk-qr-codes.zip");
+
+      statusMsg.textContent = "Completed!";
+      btn.disabled = false;
+      setTimeout(() => { progressContainer.style.display = "none"; }, 2000);
+    }
+
+    /* ================= PRINTABLE CONTACT SHEET (FIXED) ================= */
+    async function generatePrintSheet() {
+      if (!parsedRows.length) return;
+
+      const dataCol = document.getElementById("data-column-select").value;
+      const nameCol = document.getElementById("name-column-select").value;
+      const sheet = document.getElementById("print-sheet");
+      const statusMsg = document.getElementById("status-msg");
+      sheet.innerHTML = "";
+
+      statusMsg.textContent = "Building Print Sheet...";
+
+      for (let i = 0; i < parsedRows.length; i++) {
+        const row = parsedRows[i];
+        const content = String(row[dataCol] || "").trim();
+        const labelName = String(row[nameCol] || `Item #${i + 1}`).trim();
+
+        if (content) {
+          const qrInstance = new QRCodeStyling({
+            ...getStylingOptions(content, 220, 220),
+            type: "canvas"
+          });
+
+          const blob = await qrInstance.getRawData("png");
+          const imgUrl = URL.createObjectURL(blob);
+
+          const itemDiv = document.createElement("div");
+          itemDiv.className = "sheet-item";
+          itemDiv.innerHTML = `
+            <img src="${imgUrl}" alt="QR" />
+            <span>${labelName}</span>
+          `;
+          sheet.appendChild(itemDiv);
+        }
+      }
+
+      statusMsg.textContent = "Opening Print Dialog...";
+      
+      // Clean cleanup after printing to restore page state
+      window.onafterprint = () => {
+        sheet.innerHTML = "";
+        statusMsg.textContent = "File Ready";
+      };
+
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }
+
+    /* ================= SETUP FORM LISTENERS ================= */
+    function setupListeners() {
+      ["dots-style", "color-type", "logo-size", "logo-margin"].forEach(id => {
+        document.getElementById(id).addEventListener("input", updateSample);
+      });
+
+      ["dot-color-1", "dot-color-2", "bg-color"].forEach(id => {
+        const picker = document.getElementById(id);
+        const hex = document.getElementById(id + "-hex");
+        picker.addEventListener("input", () => {
+          if (hex) hex.textContent = picker.value;
+          updateSample();
+        });
+      });
+
+      document.getElementById("color-type").addEventListener("change", (e) => {
+        document.getElementById("gradient-secondary-group").style.display = 
+          e.target.value === "single" ? "none" : "block";
+        updateSample();
+      });
+
+      document.getElementById("bg-transparent").addEventListener("change", (e) => {
+        document.getElementById("bg-color-wrapper").style.display = 
+          e.target.checked ? "none" : "block";
+        updateSample();
+      });
+
+      document.getElementById("logo-size").addEventListener("input", (e) => {
+        document.getElementById("logo-size-val").textContent = e.target.value;
+      });
+      document.getElementById("logo-margin").addEventListener("input", (e) => {
+        document.getElementById("logo-margin-val").textContent = e.target.value;
+      });
+
+      document.getElementById("logo-file").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            logoDataUrl = event.target.result;
+            updateSample();
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    setupListeners();
+    updateSample();
+  </script>
+</body>
+</html>

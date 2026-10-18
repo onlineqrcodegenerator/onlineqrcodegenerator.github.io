@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online Barcode Creator – Code 128, EAN-13 & UPC-A</title>
+  <meta name="description" content="Create barcodes online for free with Code 128, EAN-13, UPC-A and more. Customize barcode size, colors and text, then download as PNG or SVG.">
+  <!-- JsBarcode Library for standard barcode rendering -->
+  <script src="./javascript/barcode.js"></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --checker: #e2e8f0;
+      --shadow: rgba(0, 0, 0, 0.05);
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    /* ================= NAVBAR & HAMBURGER ================= */
+    .navbar {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+    .navbar-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+    .brand-icon {
+      background: var(--accent);
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      list-style: none;
+    }
+    .nav-item a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.45rem 0.8rem;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .nav-item a:hover {
+      color: var(--accent);
+      background: var(--input-bg);
+    }
+    .nav-item a.active {
+      color: var(--accent);
+      background: #e0f2fe;
+    }
+
+    .hamburger-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      width: 40px;
+      height: 40px;
+      position: relative;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }
+    .hamburger-btn span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background-color: var(--text);
+      border-radius: 2px;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .hamburger-btn.is-active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger-btn.is-active span:nth-child(2) { opacity: 0; }
+    .hamburger-btn.is-active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    @media (max-width: 768px) {
+      .hamburger-btn { display: flex; }
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border);
+        box-shadow: 0 4px 12px var(--shadow);
+        padding: 0.75rem 1.25rem 1.25rem 1.25rem;
+        gap: 0.5rem;
+      }
+      .nav-links.open { display: flex; }
+      .nav-item { width: 100%; }
+      .nav-item a { display: block; width: 100%; padding: 0.75rem 1rem; font-size: 1rem; }
+    }
+
+    /* ================= MAIN CONTENT ================= */
+    main { flex: 1; padding: 2rem 1rem; }
+    
+    .page-header {
+      max-width: 1200px;
+      margin: 0 auto 2rem auto;
+      text-align: center;
+    }
+    .page-header h1 { font-size: 2rem; color: var(--accent); margin-bottom: 0.25rem; }
+    .page-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+    .app-layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .app-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ================= ACCORDION CONTROLS ================= */
+    .accordion-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 0.85rem;
+      box-shadow: 0 4px 12px var(--shadow);
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+    .accordion-item.active {
+      border-color: var(--accent);
+    }
+    .accordion-header {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 1.1rem 1.3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: left;
+      user-select: none;
+    }
+    .accordion-header:hover {
+      background: #f8fafc;
+    }
+    .accordion-item.active .accordion-header {
+      color: var(--accent);
+    }
+    .accordion-icon {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+    .accordion-item.active .accordion-icon {
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+    .accordion-body {
+      display: none;
+      padding: 0 1.3rem 1.4rem 1.3rem;
+      border-top: 1px solid transparent;
+    }
+    .accordion-item.active .accordion-body {
+      display: block;
+      border-top-color: var(--border);
+      padding-top: 1.2rem;
+    }
+
+    /* Form Controls */
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
+    input[type="text"], select {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, select:focus { border-color: var(--accent); }
+    input[type="text"].input-invalid { border-color: var(--danger); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      user-select: none;
+    }
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .error-alert {
+      display: none;
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid var(--danger-border);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      margin-top: 0.6rem;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Color Inputs */
+    .color-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--input-bg);
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    input[type="color"] {
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      background: none;
+    }
+    .color-hex { font-size: 0.85rem; text-transform: uppercase; font-family: monospace; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+    /* ================= PREVIEW SIDEBAR ================= */
+    .preview-sticky {
+      position: sticky;
+      top: 5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    .preview-canvas-wrap {
+      width: 100%;
+      min-height: 220px;
+      background-image: 
+        linear-gradient(45deg, var(--checker) 25%, transparent 25%), 
+        linear-gradient(-45deg, var(--checker) 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, var(--checker) 75%), 
+        linear-gradient(-45deg, transparent 75%, var(--checker) 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: auto;
+      padding: 1.5rem 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    #barcode-svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s;
+    }
+    .btn-primary { background: #0f172a; color: #fff; margin-bottom: 0.5rem; }
+    .btn-primary:hover { background: #1e293b; }
+    .btn-secondary { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    /* ================= FOOTER ================= */
+    footer {
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      padding: 2rem 1rem;
+      margin-top: auto;
+    }
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-text { font-size: 0.9rem; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 1rem; list-style: none; }
+    .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; }
+    .footer-links a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR WITH HAMBURGER -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index" class="brand-link">
+        
+        <span>OnlineQRCodeGenerator</span>
+      </a>
+
+      <!-- Hamburger Button -->
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation menu" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <!-- Navigation Links -->
+      <ul class="nav-links" id="nav-links">
+        <li class="nav-item"><a href="index" onclick="closeMenu()">Home</a></li>
+        <li class="nav-item"><a href="url-to-qr-code-generator" onclick="closeMenu()">URL</a></li>
+        <li class="nav-item"><a href="vcard-to-qr-code-generator" onclick="closeMenu()">vCard</a></li>
+        <li class="nav-item"><a href="wifi-to-qr-code-generator" onclick="closeMenu()">Wi-Fi</a></li>
+        <li class="nav-item"><a href="text-to-qr-code-generator" onclick="closeMenu()">Text</a></li>
+        <li class="nav-item"><a href="barcode-generator" class="active" onclick="closeMenu()">Barcode</a></li>
+        <li class="nav-item"><a href="bulk-qr-code-generator">Bulk QR</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- MAIN APP -->
+  <main>
+    <div class="page-header">
+      <h1>Online Barcode Creator</h1>
+      <p>Generate retail, logistics, and inventory barcodes with custom styling</p>
+    </div>
+
+    <div class="app-layout">
+      <!-- LEFT: ACCORDION CONTROLS -->
+      <div class="controls-column">
+        
+        <!-- Accordion 1: Barcode Data & Format -->
+        <div class="accordion-item active" id="acc-data">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-data')">
+            <span>1. Barcode Data &amp; Format</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="form-group">
+              <label for="bc-data">Barcode Content *</label>
+              <input type="text" id="bc-data" value="123456789012" placeholder="e.g. 123456789012" />
+              
+              <div class="error-alert" id="bc-error">
+                <span>⚠️</span>
+                <span id="bc-error-text">Invalid barcode data for the chosen format.</span>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="bc-format">Barcode Standard / Symbology</label>
+                <select id="bc-format">
+                  <option value="CODE128">Code 128 (Universal)</option>
+                  <option value="EAN13" selected>EAN-13 (12-13 digits / Retail)</option>
+                  <option value="UPC">UPC-A (11-12 digits / USA Retail)</option>
+                  <option value="EAN8">EAN-8 (7-8 digits)</option>
+                  <option value="CODE39">Code 39 (Alphanumeric)</option>
+                  <option value="ITF14">ITF-14 (14 digits / Shipping)</option>
+                  <option value="ITF">ITF (Interleaved 2 of 5)</option>
+                  <option value="pharmacode">Pharmacode (Pharmaceutical)</option>
+                  <option value="codabar">Codabar</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="display: flex; flex-direction: column; justify-content: center;">
+                <label class="checkbox-label" style="margin-top: 1rem;">
+                  <input type="checkbox" id="bc-display-text" checked />
+                  Show text label under bars
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 2: Dimensions & Layout -->
+        <div class="accordion-item" id="acc-dimensions">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-dimensions')">
+            <span>2. Dimensions &amp; Layout</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="bc-width">Bar Width (<span id="bc-width-val">2</span>px)</label>
+                <input type="range" id="bc-width" min="1" max="5" step="0.5" value="2" />
+              </div>
+
+              <div class="form-group">
+                <label for="bc-height">Bar Height (<span id="bc-height-val">100</span>px)</label>
+                <input type="range" id="bc-height" min="30" max="200" step="5" value="100" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="bc-margin">Margin Padding (<span id="bc-margin-val">10</span>px)</label>
+              <input type="range" id="bc-margin" min="0" max="40" step="2" value="10" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 3: Colors & Typography -->
+        <div class="accordion-item" id="acc-styling">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-styling')">
+            <span>3. Colors &amp; Typography</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Bar Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="bc-line-color" value="#000000" />
+                  <span class="color-hex" id="bc-line-color-hex">#000000</span>
+                </div>
+              </div>
+
+              <div class="form-group" id="bc-bg-color-wrapper">
+                <label>Background Fill Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="bc-bg-color" value="#ffffff" />
+                  <span class="color-hex" id="bc-bg-color-hex">#ffffff</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="bc-transparent" />
+                Transparent Background
+              </label>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="bc-font-size">Label Font Size (<span id="bc-font-size-val">18</span>px)</label>
+                <input type="range" id="bc-font-size" min="10" max="32" step="1" value="18" />
+              </div>
+
+              <div class="form-group">
+                <label for="bc-text-align">Text Alignment</label>
+                <select id="bc-text-align">
+                  <option value="center" selected>Center</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: PREVIEW & DOWNLOAD -->
+      <div class="preview-sticky">
+        <div class="preview-canvas-wrap">
+          <svg id="barcode-svg"></svg>
+        </div>
+
+        <button class="btn btn-primary" onclick="downloadBarcodePNG()">Download PNG</button>
+        <button class="btn btn-secondary" onclick="downloadBarcodeSVG()">Download Vector (SVG)</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <p class="footer-text">© 2026 OnlineQRCodeGenerator. Client-side, privacy-first QR &amp; barcode utilities.</p>
+      
+    </div>
+  </footer>
+
+  <script>
+    /* ================= ACCORDION (FOCUS MODE) ================= */
+    function toggleAccordion(id) {
+      const targetItem = document.getElementById(id);
+      const isOpen = targetItem.classList.contains("active");
+
+      document.querySelectorAll(".accordion-item").forEach(item => {
+        item.classList.remove("active");
+      });
+
+      if (!isOpen) {
+        targetItem.classList.add("active");
+      }
+    }
+
+    /* ================= MOBILE HAMBURGER MENU ================= */
+    const hamburgerBtn = document.getElementById("hamburger-btn");
+    const navLinks = document.getElementById("nav-links");
+
+    function toggleMenu() {
+      hamburgerBtn.classList.toggle("is-active");
+      navLinks.classList.toggle("open");
+    }
+
+    function closeMenu() {
+      hamburgerBtn.classList.remove("is-active");
+      navLinks.classList.remove("open");
+    }
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 768) closeMenu();
+    });
+
+    /* ================= BARCODE RENDERING & VALIDATION ================= */
+    function renderBarcode() {
+      const text = document.getElementById("bc-data").value.trim();
+      const format = document.getElementById("bc-format").value;
+      const displayValue = document.getElementById("bc-display-text").checked;
+      const width = parseFloat(document.getElementById("bc-width").value);
+      const height = parseInt(document.getElementById("bc-height").value, 10);
+      const margin = parseInt(document.getElementById("bc-margin").value, 10);
+      const lineColor = document.getElementById("bc-line-color").value;
+      const isTransparent = document.getElementById("bc-transparent").checked;
+      const background = isTransparent ? "transparent" : document.getElementById("bc-bg-color").value;
+      const fontSize = parseInt(document.getElementById("bc-font-size").value, 10);
+      const textAlign = document.getElementById("bc-text-align").value;
+
+      const errorBox = document.getElementById("bc-error");
+      const errorText = document.getElementById("bc-error-text");
+      const inputField = document.getElementById("bc-data");
+
+      if (!text) {
+        errorText.textContent = "Please enter barcode data.";
+        errorBox.style.display = "flex";
+        inputField.classList.add("input-invalid");
+        return;
+      }
+
+      try {
+        JsBarcode("#barcode-svg", text, {
+          format: format,
+          width: width,
+          height: height,
+          displayValue: displayValue,
+          lineColor: lineColor,
+          background: background,
+          margin: margin,
+          fontSize: fontSize,
+          textAlign: textAlign,
+          valid: function(valid) {
+            if (!valid) {
+              throw new Error("Invalid format data");
+            }
+          }
+        });
+
+        // Success: hide errors
+        errorBox.style.display = "none";
+        inputField.classList.remove("input-invalid");
+      } catch (err) {
+        errorText.textContent = `Invalid data for ${format}. Please check format requirements.`;
+        errorBox.style.display = "flex";
+        inputField.classList.add("input-invalid");
+      }
+    }
+
+    /* ================= DOWNLOAD HANDLERS ================= */
+    function downloadBarcodeSVG() {
+      const svg = document.getElementById("barcode-svg");
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svg);
+
+      // Add xml namespace if missing
+      if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+
+      const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = "barcode.svg";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadBarcodePNG() {
+      const svg = document.getElementById("barcode-svg");
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svg);
+      const isTransparent = document.getElementById("bc-transparent").checked;
+      const bgColor = isTransparent ? "transparent" : document.getElementById("bc-bg-color").value;
+
+      const img = new Image();
+      const svgBlob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = function() {
+        const canvas = document.createElement("canvas");
+        // Use 2x scaling for extra crisp raster output
+        const scale = 2;
+        canvas.width = (img.width || 400) * scale;
+        canvas.height = (img.height || 200) * scale;
+        const ctx = canvas.getContext("2d");
+
+        if (!isTransparent) {
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+
+        const a = document.createElement("a");
+        a.download = "barcode.png";
+        a.href = canvas.toDataURL("image/png");
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+
+      img.src = url;
+    }
+
+    /* ================= SETUP FORM LISTENERS ================= */
+    function setupFormListeners() {
+      // Inputs triggering render
+      const textInputs = ["bc-data", "bc-format", "bc-text-align"];
+      textInputs.forEach(id => {
+        document.getElementById(id).addEventListener("input", renderBarcode);
+      });
+
+      document.getElementById("bc-display-text").addEventListener("change", renderBarcode);
+      document.getElementById("bc-transparent").addEventListener("change", (e) => {
+        document.getElementById("bc-bg-color-wrapper").style.display = e.target.checked ? "none" : "block";
+        renderBarcode();
+      });
+
+      // Range sliders with label feedback
+      const sliders = [
+        { id: "bc-width", label: "bc-width-val" },
+        { id: "bc-height", label: "bc-height-val" },
+        { id: "bc-margin", label: "bc-margin-val" },
+        { id: "bc-font-size", label: "bc-font-size-val" }
+      ];
+      sliders.forEach(s => {
+        document.getElementById(s.id).addEventListener("input", (e) => {
+          document.getElementById(s.label).textContent = e.target.value;
+          renderBarcode();
+        });
+      });
+
+      // Color pickers with hex text feedback
+      const colorPickers = [
+        { id: "bc-line-color", label: "bc-line-color-hex" },
+        { id: "bc-bg-color", label: "bc-bg-color-hex" }
+      ];
+      colorPickers.forEach(c => {
+        document.getElementById(c.id).addEventListener("input", (e) => {
+          document.getElementById(c.label).textContent = e.target.value;
+          renderBarcode();
+        });
+      });
+    }
+
+    // Initialize on load
+    setupFormListeners();
+    renderBarcode();
+  </script>
+</body>
+</html>

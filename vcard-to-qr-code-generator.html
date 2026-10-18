@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free vCard QR Code Generator Online</title>
+  <meta name="description" content="Create a free vCard QR code online with your contact details. Import VCF files or enter information manually, customize colors and logos, and download high-resolution PNG or SVG QR codes.">
+  <!-- Library for QR rendering -->
+  <script src="./javascript/qrcode.js"></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --checker: #e2e8f0;
+      --shadow: rgba(0, 0, 0, 0.05);
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    /* ================= NAVBAR & HAMBURGER ================= */
+    .navbar {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+    .navbar-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+    .brand-icon {
+      background: var(--accent);
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      list-style: none;
+    }
+    .nav-item a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.45rem 0.8rem;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .nav-item a:hover {
+      color: var(--accent);
+      background: var(--input-bg);
+    }
+    .nav-item a.active {
+      color: var(--accent);
+      background: #e0f2fe;
+    }
+
+    .hamburger-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      width: 40px;
+      height: 40px;
+      position: relative;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }
+    .hamburger-btn span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background-color: var(--text);
+      border-radius: 2px;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .hamburger-btn.is-active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger-btn.is-active span:nth-child(2) { opacity: 0; }
+    .hamburger-btn.is-active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    @media (max-width: 768px) {
+      .hamburger-btn { display: flex; }
+      .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border);
+        box-shadow: 0 4px 12px var(--shadow);
+        padding: 0.75rem 1.25rem 1.25rem 1.25rem;
+        gap: 0.5rem;
+      }
+      .nav-links.open { display: flex; }
+      .nav-item { width: 100%; }
+      .nav-item a { display: block; width: 100%; padding: 0.75rem 1rem; font-size: 1rem; }
+    }
+
+    /* ================= MAIN CONTENT ================= */
+    main { flex: 1; padding: 2rem 1rem; }
+    
+    .page-header {
+      max-width: 1200px;
+      margin: 0 auto 2rem auto;
+      text-align: center;
+    }
+    .page-header h1 { font-size: 2rem; color: var(--accent); margin-bottom: 0.25rem; }
+    .page-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+    .app-layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .app-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ================= ACCORDION / DROPDOWN CONTROLS ================= */
+    .accordion-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 0.85rem;
+      box-shadow: 0 4px 12px var(--shadow);
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+    .accordion-item.active {
+      border-color: var(--accent);
+    }
+    .accordion-header {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 1.1rem 1.3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: left;
+      user-select: none;
+    }
+    .accordion-header:hover {
+      background: #f8fafc;
+    }
+    .accordion-item.active .accordion-header {
+      color: var(--accent);
+    }
+    .accordion-icon {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+    .accordion-item.active .accordion-icon {
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+    .accordion-body {
+      display: none;
+      padding: 0 1.3rem 1.4rem 1.3rem;
+      border-top: 1px solid transparent;
+    }
+    .accordion-item.active .accordion-body {
+      display: block;
+      border-top-color: var(--border);
+      padding-top: 1.2rem;
+    }
+
+    /* VCF Upload Box */
+    .file-upload-box {
+      border: 2px dashed var(--accent);
+      background: #f0f9ff;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      margin-bottom: 1.25rem;
+      cursor: pointer;
+      position: relative;
+      transition: 0.2s;
+    }
+    .file-upload-box:hover { background: #e0f2fe; }
+    .file-upload-box input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .file-upload-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .file-upload-label span {
+      font-size: 0.75rem;
+      font-weight: normal;
+      color: var(--text-muted);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 1rem 0;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border);
+    }
+    .divider:not(:empty)::before { margin-right: .5em; }
+    .divider:not(:empty)::after { margin-left: .5em; }
+
+    /* Form Controls */
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
+    input[type="text"], input[type="tel"], input[type="email"], select {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="tel"]:focus, input[type="email"]:focus, select:focus { border-color: var(--accent); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      user-select: none;
+    }
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .error-alert {
+      display: none;
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid var(--danger-border);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      margin-top: 1rem;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Color Inputs */
+    .color-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--input-bg);
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    input[type="color"] {
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      background: none;
+    }
+    .color-hex { font-size: 0.85rem; text-transform: uppercase; font-family: monospace; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+    /* Preview Sidebar */
+    .preview-sticky {
+      position: sticky;
+      top: 5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    .preview-canvas-wrap {
+      width: 280px;
+      height: 280px;
+      background-image: 
+        linear-gradient(45deg, var(--checker) 25%, transparent 25%), 
+        linear-gradient(-45deg, var(--checker) 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, var(--checker) 75%), 
+        linear-gradient(-45deg, transparent 75%, var(--checker) 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s;
+    }
+    .btn-primary { background: #0f172a; color: #fff; margin-bottom: 0.5rem; }
+    .btn-primary:hover { background: #1e293b; }
+    .btn-secondary { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    .btn-remove-logo {
+      padding: 0.35rem 0.6rem;
+      font-size: 0.8rem;
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      display: none;
+    }
+
+    /* Simple Mode Handling */
+    .custom-section { display: block; }
+    body.is-simple .custom-section { display: none !important; }
+
+    /* ================= FOOTER ================= */
+    footer {
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      padding: 2rem 1rem;
+      margin-top: auto;
+    }
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-text { font-size: 0.9rem; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 1rem; list-style: none; }
+    .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; }
+    .footer-links a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR WITH HAMBURGER -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index" class="brand-link">
+        <span>OnlineQRCodeGenerator</span>
+      </a>
+
+      <!-- Hamburger Button -->
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation menu" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <!-- Navigation Links -->
+      <ul class="nav-links" id="nav-links">
+        <li class="nav-item"><a href="index" >Home</a></li>
+        <li class="nav-item"><a href="url-to-qr-code-generator" onclick="closeMenu()">URL</a></li>
+        <li class="nav-item"><a href="vcard-to-qr-code-generator" class="active" onclick="closeMenu()">vCard</a></li>
+        <li class="nav-item"><a href="wifi-to-qr-code-generator" onclick="closeMenu()">Wi-Fi</a></li>
+        <li class="nav-item"><a href="text-to-qr-code-generator" onclick="closeMenu()">Text</a></li>
+        <li class="nav-item"><a href="barcode-generator" onclick="closeMenu()">Barcode</a></li>
+        <li class="nav-item"><a href="bulk-qr-code-generator">Bulk QR</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- MAIN APP -->
+  <main>
+    <div class="page-header">
+      <h1>Free vCard QR Code Generator</h1>
+      <p>Upload a .vcf file or enter details manually to create scannable contact cards</p>
+    </div>
+
+    <div class="app-layout">
+      <!-- LEFT: ACCORDION CONTROLS -->
+      <div class="controls-column">
+        
+        <!-- Accordion 1: Contact Information -->
+        <div class="accordion-item active" id="acc-contact">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-contact')">
+            <span>1. Contact Information</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <!-- Upload .vcf/.vcard box -->
+            <div class="file-upload-box">
+              <input type="file" id="vcard-file-input" accept=".vcf, .vcard, text/vcard, text/x-vcard" />
+              <div class="file-upload-label">
+                📁 Upload .vcf / .vcard File
+                <span>Instantly import and populate all fields</span>
+              </div>
+            </div>
+
+            <div class="divider">OR FILL IN MANUALLY</div>
+            
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="vc-first">First Name *</label>
+                <input type="text" id="vc-first" value="Alex" placeholder="e.g. Alex" />
+              </div>
+              <div class="form-group">
+                <label for="vc-last">Last Name</label>
+                <input type="text" id="vc-last" value="Rivera" placeholder="e.g. Rivera" />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="vc-company">Company</label>
+                <input type="text" id="vc-company" value="Tech Studio" placeholder="e.g. Acme Corp" />
+              </div>
+              <div class="form-group">
+                <label for="vc-title">Job Title</label>
+                <input type="text" id="vc-title" value="Creative Director" placeholder="e.g. Lead Designer" />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="vc-phone">Phone Number *</label>
+                <input type="tel" id="vc-phone" value="+1234567890" placeholder="+1 (555) 000-0000" />
+              </div>
+              <div class="form-group">
+                <label for="vc-email">Email Address</label>
+                <input type="email" id="vc-email" value="alex@example.com" placeholder="alex@domain.com" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="vc-website">Website URL</label>
+              <input type="text" id="vc-website" value="https://example.com" placeholder="https://yourportfolio.com" />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="vc-address">Address</label>
+              <input type="text" id="vc-address" value="San Francisco, CA" placeholder="City, State / Full Address" />
+            </div>
+
+            <div class="error-alert" id="vcard-error">
+              <span>⚠️</span>
+              <span id="vcard-error-text">Please provide at least a First Name and a Phone Number or Email.</span>
+            </div>
+
+            <label class="checkbox-label" style="margin-top: 1.25rem;">
+              <input type="checkbox" id="simple-qr-toggle" />
+              Simple QR Code (Classic Black & White, no custom styling)
+            </label>
+          </div>
+        </div>
+
+        <!-- Accordion 2: Pattern & Colors (Customization) -->
+        <div class="accordion-item custom-section" id="acc-pattern">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-pattern')">
+            <span>2. Pattern & Colors</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="dots-style">Pattern Style</label>
+                <select id="dots-style">
+                  <option value="rounded" selected>Rounded</option>
+                  <option value="square">Classic Square</option>
+                  <option value="dots">Dots</option>
+                  <option value="extra-rounded">Extra Rounded</option>
+                  <option value="classy">Classy</option>
+                  <option value="classy-rounded">Classy Rounded</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="color-type">Color Format</label>
+                <select id="color-type">
+                  <option value="single">Solid Color</option>
+                  <option value="linear">Linear Gradient</option>
+                  <option value="radial">Radial Gradient</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Primary Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="dot-color-1" value="#0284c7">
+                  <span class="color-hex" id="dot-color-1-hex">#0284c7</span>
+                </div>
+              </div>
+
+              <div class="form-group" id="gradient-secondary-group" style="display: none;">
+                <label>Gradient Accent Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="dot-color-2" value="#6366f1">
+                  <span class="color-hex" id="dot-color-2-hex">#6366f1</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 3: Eye Frame & Corner Styling (Customization) -->
+        <div class="accordion-item custom-section" id="acc-corners">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-corners')">
+            <span>3. Corner Eye Styling</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="corner-square-style">Outer Corner Shape</label>
+                <select id="corner-square-style">
+                  <option value="extra-rounded" selected>Extra Rounded</option>
+                  <option value="square">Square</option>
+                  <option value="dot">Circle</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="corner-dot-style">Corner Center Dot</label>
+                <select id="corner-dot-style">
+                  <option value="dot" selected>Circle</option>
+                  <option value="square">Square</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Outer Corner Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="corner-square-color" value="#0284c7">
+                  <span class="color-hex" id="corner-square-hex">#0284c7</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Inner Eye Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="corner-dot-color" value="#0284c7">
+                  <span class="color-hex" id="corner-dot-hex">#0284c7</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 4: Background Settings (Customization) -->
+        <div class="accordion-item custom-section" id="acc-bg">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-bg')">
+            <span>4. Background</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="bg-transparent" />
+                Transparent Background
+              </label>
+            </div>
+            <div class="form-group" id="bg-color-wrapper" style="margin-bottom: 0;">
+              <label>Background Fill Color</label>
+              <div class="color-input-wrapper">
+                <input type="color" id="bg-color" value="#ffffff">
+                <span class="color-hex" id="bg-color-hex">#ffffff</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 5: Logo / Avatar Customization (Customization) -->
+        <div class="accordion-item custom-section" id="acc-logo">
+          <button type="button" class="accordion-header" onclick="toggleAccordion('acc-logo')">
+            <span>5. Logo / Profile Picture</span>
+            <span class="accordion-icon">▼</span>
+          </button>
+          <div class="accordion-body">
+            <div class="form-group">
+              <label for="logo-file">Upload Logo or Avatar (PNG, JPG, SVG)</label>
+              <input type="file" id="logo-file" accept="image/*" />
+              <button type="button" class="btn-remove-logo" id="btn-remove-logo">Remove Logo</button>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="logo-size">Logo Scale (<span id="logo-size-val">0.25</span>)</label>
+                <input type="range" id="logo-size" min="0.1" max="0.35" step="0.05" value="0.25">
+              </div>
+              <div class="form-group">
+                <label for="logo-margin">Margin Around Logo (<span id="logo-margin-val">4</span>px)</label>
+                <input type="range" id="logo-margin" min="0" max="20" step="1" value="4">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: PREVIEW & DOWNLOAD -->
+      <div class="preview-sticky">
+        <div class="preview-canvas-wrap">
+          <div id="qr-preview"></div>
+        </div>
+
+        <div class="form-group custom-section" style="width: 100%;">
+          <label for="export-res">Export Resolution</label>
+          <select id="export-res">
+            <option value="1000">1000 x 1000 px (Standard)</option>
+            <option value="2000" selected>2000 x 2000 px (Crisp HD)</option>
+            <option value="4000">4000 x 4000 px (Ultra Print)</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="exportQR('png')">Download PNG</button>
+        <button class="btn btn-secondary custom-section" onclick="exportQR('svg')">Download Vector (SVG)</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <p class="footer-text">© 2026 OnlineQRCodeGenerator. Client-side, privacy-first QR utilities hosted on GitHub Pages.</p>
+      
+    </div>
+  </footer>
+
+  <script>
+    /* ================= ACCORDION (FOCUS MODE) ================= */
+    function toggleAccordion(id) {
+      const targetItem = document.getElementById(id);
+      const isOpen = targetItem.classList.contains("active");
+
+      // Close all accordion panels
+      document.querySelectorAll(".accordion-item").forEach(item => {
+        item.classList.remove("active");
+      });
+
+      // Expand clicked panel if it wasn't already open
+      if (!isOpen) {
+        targetItem.classList.add("active");
+      }
+    }
+
+    /* ================= MOBILE HAMBURGER MENU ================= */
+    const hamburgerBtn = document.getElementById("hamburger-btn");
+    const navLinks = document.getElementById("nav-links");
+
+    function toggleMenu() {
+      hamburgerBtn.classList.toggle("is-active");
+      navLinks.classList.toggle("open");
+    }
+
+    function closeMenu() {
+      hamburgerBtn.classList.remove("is-active");
+      navLinks.classList.remove("open");
+    }
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 768) {
+        closeMenu();
+      }
+    });
+
+    /* ================= QR LOGIC ================= */
+    let logoDataUrl = "";
+    let isSimpleMode = false;
+
+    // Initialize QR code instance
+    const qrCode = new QRCodeStyling({
+      width: 250,
+      height: 250,
+      type: "canvas",
+      data: "",
+      image: "",
+      dotsOptions: { color: "#0284c7", type: "rounded" },
+      backgroundOptions: { color: "#ffffff" },
+      imageOptions: { crossOrigin: "anonymous", margin: 4, imageSize: 0.25 },
+      cornersSquareOptions: { type: "extra-rounded", color: "#0284c7" },
+      cornersDotOptions: { type: "dot", color: "#0284c7" },
+      qrOptions: { errorCorrectionLevel: "H" }
+    });
+
+    qrCode.append(document.getElementById("qr-preview"));
+
+    /* ================= VCARD FORMATTER & PARSER ================= */
+    function buildVCardString() {
+      const first = document.getElementById("vc-first").value.trim();
+      const last = document.getElementById("vc-last").value.trim();
+      const company = document.getElementById("vc-company").value.trim();
+      const title = document.getElementById("vc-title").value.trim();
+      const phone = document.getElementById("vc-phone").value.trim();
+      const email = document.getElementById("vc-email").value.trim();
+      const website = document.getElementById("vc-website").value.trim();
+      const address = document.getElementById("vc-address").value.trim();
+
+      // Validation: Needs a name, plus phone or email
+      if (!first && !last) return null;
+      if (!phone && !email) return null;
+
+      let vcard = "BEGIN:VCARD\nVERSION:3.0\n";
+      vcard += `N:${last};${first};;;\n`;
+      vcard += `FN:${first} ${last}`.trim() + "\n";
+      if (company) vcard += `ORG:${company}\n`;
+      if (title) vcard += `TITLE:${title}\n`;
+      if (phone) vcard += `TEL;TYPE=CELL:${phone}\n`;
+      if (email) vcard += `EMAIL:${email}\n`;
+      if (website) vcard += `URL:${website}\n`;
+      if (address) vcard += `ADR;TYPE=WORK:;;${address};;;;\n`;
+      vcard += "END:VCARD";
+
+      return vcard;
+    }
+
+    function parseVCF(content) {
+      const lines = content.split(/\r\n|\r|\n/);
+      let firstName = "", lastName = "", org = "", title = "", tel = "", email = "", url = "", adr = "";
+
+      lines.forEach(line => {
+        const upper = line.toUpperCase();
+        if (upper.startsWith("N:") || upper.startsWith("N;")) {
+          const parts = line.substring(line.indexOf(":") + 1).split(";");
+          lastName = parts[0] || "";
+          firstName = parts[1] || "";
+        } else if (upper.startsWith("FN:") && !firstName && !lastName) {
+          const fullName = line.substring(line.indexOf(":") + 1).trim();
+          const parts = fullName.split(" ");
+          firstName = parts[0] || "";
+          lastName = parts.slice(1).join(" ") || "";
+        } else if (upper.startsWith("ORG:") || upper.startsWith("ORG;")) {
+          org = line.substring(line.indexOf(":") + 1).replace(/;/g, " ").trim();
+        } else if (upper.startsWith("TITLE:") || upper.startsWith("TITLE;")) {
+          title = line.substring(line.indexOf(":") + 1).trim();
+        } else if (upper.startsWith("TEL:") || upper.startsWith("TEL;")) {
+          tel = line.substring(line.indexOf(":") + 1).trim();
+        } else if (upper.startsWith("EMAIL:") || upper.startsWith("EMAIL;")) {
+          email = line.substring(line.indexOf(":") + 1).trim();
+        } else if (upper.startsWith("URL:") || upper.startsWith("URL;")) {
+          url = line.substring(line.indexOf(":") + 1).trim();
+        } else if (upper.startsWith("ADR:") || upper.startsWith("ADR;")) {
+          const parts = line.substring(line.indexOf(":") + 1).split(";");
+          adr = parts.filter(p => p.trim().length > 0).join(", ");
+        }
+      });
+
+      if (firstName) document.getElementById("vc-first").value = firstName;
+      if (lastName) document.getElementById("vc-last").value = lastName;
+      if (org) document.getElementById("vc-company").value = org;
+      if (title) document.getElementById("vc-title").value = title;
+      if (tel) document.getElementById("vc-phone").value = tel;
+      if (email) document.getElementById("vc-email").value = email;
+      if (url) document.getElementById("vc-website").value = url;
+      if (adr) document.getElementById("vc-address").value = adr;
+
+      validateAndUpdateQR();
+    }
+
+    function validateAndUpdateQR() {
+      const vcardData = buildVCardString();
+      const errorBox = document.getElementById("vcard-error");
+
+      if (!vcardData) {
+        errorBox.style.display = "flex";
+        return;
+      }
+
+      errorBox.style.display = "none";
+      qrCode.update(getOptions(250, 250, vcardData));
+    }
+
+    /* ================= OPTION COMPILATION ================= */
+    function getOptions(renderWidth = 250, renderHeight = 250, dataOverride = null) {
+      const data = dataOverride || buildVCardString() || "BEGIN:VCARD\nVERSION:3.0\nFN:Alex Rivera\nTEL:+1234567890\nEND:VCARD";
+
+      if (isSimpleMode) {
+        return {
+          width: renderWidth,
+          height: renderHeight,
+          data: data,
+          image: "",
+          dotsOptions: { color: "#000000", type: "square", gradient: null },
+          backgroundOptions: { color: "#ffffff" },
+          cornersSquareOptions: { type: "square", color: "#000000" },
+          cornersDotOptions: { type: "square", color: "#000000" },
+          qrOptions: { errorCorrectionLevel: "M" }
+        };
+      }
+
+      const dotsType = document.getElementById("dots-style").value;
+      const colorType = document.getElementById("color-type").value;
+      const c1 = document.getElementById("dot-color-1").value;
+      const c2 = document.getElementById("dot-color-2").value;
+
+      let dotsOptions = { type: dotsType };
+      if (colorType === "single") {
+        dotsOptions.color = c1;
+        dotsOptions.gradient = null;
+      } else {
+        dotsOptions.gradient = {
+          type: colorType,
+          rotation: 45,
+          colorStops: [
+            { offset: 0, color: c1 },
+            { offset: 1, color: c2 }
+          ]
+        };
+      }
+
+      const cornerSquareType = document.getElementById("corner-square-style").value;
+      const cornerSquareColor = document.getElementById("corner-square-color").value;
+      const cornerDotType = document.getElementById("corner-dot-style").value;
+      const cornerDotColor = document.getElementById("corner-dot-color").value;
+
+      const isTransparent = document.getElementById("bg-transparent").checked;
+      const bgColor = isTransparent ? "transparent" : document.getElementById("bg-color").value;
+
+      const logoSize = parseFloat(document.getElementById("logo-size").value);
+      const logoMargin = parseInt(document.getElementById("logo-margin").value, 10);
+
+      return {
+        width: renderWidth,
+        height: renderHeight,
+        data: data,
+        image: logoDataUrl,
+        dotsOptions: dotsOptions,
+        backgroundOptions: { color: bgColor },
+        cornersSquareOptions: { type: cornerSquareType, color: cornerSquareColor },
+        cornersDotOptions: { type: cornerDotType, color: cornerDotColor },
+        imageOptions: {
+          crossOrigin: "anonymous",
+          imageSize: logoSize,
+          margin: logoMargin
+        },
+        qrOptions: { errorCorrectionLevel: "H" }
+      };
+    }
+
+    /* ================= SETUP EVENT LISTENERS ================= */
+    function setupFormListeners() {
+      // VCF File Upload listener
+      const vcfInput = document.getElementById("vcard-file-input");
+      vcfInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            parseVCF(event.target.result);
+          };
+          reader.readAsText(file);
+        }
+      });
+
+      // Contact fields
+      const contactFields = [
+        "vc-first", "vc-last", "vc-company", "vc-title", 
+        "vc-phone", "vc-email", "vc-website", "vc-address"
+      ];
+      contactFields.forEach(id => {
+        document.getElementById(id).addEventListener("input", validateAndUpdateQR);
+      });
+
+      // Simple QR Toggle
+      document.getElementById("simple-qr-toggle").addEventListener("change", (e) => {
+        isSimpleMode = e.target.checked;
+        if (isSimpleMode) {
+          document.body.classList.add("is-simple");
+        } else {
+          document.body.classList.remove("is-simple");
+        }
+        validateAndUpdateQR();
+      });
+
+      // Dropdowns & sliders
+      const liveInputs = [
+        "dots-style", "corner-square-style", "corner-dot-style", 
+        "logo-size", "logo-margin"
+      ];
+      liveInputs.forEach(id => {
+        document.getElementById(id).addEventListener("input", validateAndUpdateQR);
+      });
+
+      // Colors
+      const colors = ["dot-color-1", "dot-color-2", "corner-square-color", "corner-dot-color", "bg-color"];
+      colors.forEach(id => {
+        const picker = document.getElementById(id);
+        const hex = document.getElementById(id + "-hex");
+        picker.addEventListener("input", () => {
+          if (hex) hex.textContent = picker.value;
+          validateAndUpdateQR();
+        });
+      });
+
+      document.getElementById("color-type").addEventListener("change", (e) => {
+        document.getElementById("gradient-secondary-group").style.display = 
+          e.target.value === "single" ? "none" : "block";
+        validateAndUpdateQR();
+      });
+
+      document.getElementById("bg-transparent").addEventListener("change", (e) => {
+        document.getElementById("bg-color-wrapper").style.display = 
+          e.target.checked ? "none" : "block";
+        validateAndUpdateQR();
+      });
+
+      document.getElementById("logo-size").addEventListener("input", (e) => {
+        document.getElementById("logo-size-val").textContent = e.target.value;
+      });
+      document.getElementById("logo-margin").addEventListener("input", (e) => {
+        document.getElementById("logo-margin-val").textContent = e.target.value;
+      });
+
+      // Logo Image File
+      const fileInput = document.getElementById("logo-file");
+      const removeLogoBtn = document.getElementById("btn-remove-logo");
+
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            logoDataUrl = event.target.result;
+            removeLogoBtn.style.display = "inline-block";
+            validateAndUpdateQR();
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      removeLogoBtn.addEventListener("click", () => {
+        logoDataUrl = "";
+        fileInput.value = "";
+        removeLogoBtn.style.display = "none";
+        validateAndUpdateQR();
+      });
+    }
+
+    /* ================= EXPORT ================= */
+    async function exportQR(extension) {
+      const vcardData = buildVCardString();
+      const errorBox = document.getElementById("vcard-error");
+
+      if (!vcardData) {
+        errorBox.style.display = "flex";
+        return;
+      }
+
+      const resolutionSelect = document.getElementById("export-res");
+      const size = isSimpleMode ? 1200 : parseInt(resolutionSelect.value, 10);
+      const downloadOptions = getOptions(size, size, vcardData);
+
+      const exportInstance = new QRCodeStyling({
+        ...downloadOptions,
+        type: extension === "svg" ? "svg" : "canvas"
+      });
+
+      await exportInstance.download({
+        name: "vcard-contact",
+        extension: extension
+      });
+    }
+
+    // Initialize
+    setupFormListeners();
+    validateAndUpdateQR();
+  </script>
+</body>
+</html>
